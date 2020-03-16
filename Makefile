@@ -120,6 +120,7 @@ SRC = \
 	src/FNALoggerEXT.cs \
 	src/FNAPlatform/FNAPlatform.cs \
 	src/FNAPlatform/FNAWindow.cs \
+	src/FNAPlatform/GLCommand.cs \
 	src/FNAPlatform/IGLDevice.cs \
 	src/FNAPlatform/MetalDevice.cs \
 	src/FNAPlatform/MetalDevice_MTL.cs \

@@ -1960,7 +1960,16 @@ namespace Microsoft.Xna.Framework.Graphics
 			IntPtr glEffect = IntPtr.Zero;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.createEffect.type = GLCommand.CREATEEFFECT;
+				cmd.createEffect.effectCode = effectCode;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.createEffect.retval;
+			}
 #endif
 
 			effect = MojoShader.MOJOSHADER_parseEffect(
@@ -2008,10 +2017,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				);
 			}
 
-#if !DISABLE_THREADING
-			});
-#endif
-
 			return new OpenGLEffect(effect, glEffect);
 		}
 
@@ -2036,7 +2041,16 @@ namespace Microsoft.Xna.Framework.Graphics
 			IntPtr glEffect = IntPtr.Zero;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.cloneEffect.type = GLCommand.CLONEEFFECT;
+				cmd.cloneEffect.cloneSource = cloneSource;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.cloneEffect.retval;
+			}
 #endif
 
 			effect = MojoShader.MOJOSHADER_cloneEffect(cloneSource.EffectData);
@@ -2047,10 +2061,6 @@ namespace Microsoft.Xna.Framework.Graphics
 					MojoShader.MOJOSHADER_glGetError()
 				);
 			}
-
-#if !DISABLE_THREADING
-			});
-#endif
 
 			return new OpenGLEffect(effect, glEffect);
 		}
@@ -2380,7 +2390,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			OpenGLBuffer result = null;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.genVertexBuffer.type = GLCommand.GENVERTEXBUFFER;
+				cmd.genVertexBuffer.dynamic = dynamic;
+				cmd.genVertexBuffer.usage = usage;
+				cmd.genVertexBuffer.vertexCount = vertexCount;
+				cmd.genVertexBuffer.vertexStride = vertexStride;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.genVertexBuffer.retval;
+			}
 #endif
 
 			uint handle;
@@ -2400,10 +2422,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				result.Dynamic
 			);
 
-#if !DISABLE_THREADING
-			});
-#endif
-
 			return result;
 		}
 
@@ -2416,7 +2434,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			OpenGLBuffer result = null;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.genIndexBuffer.type = GLCommand.GENINDEXBUFFER;
+				cmd.genIndexBuffer.dynamic = dynamic;
+				cmd.genIndexBuffer.usage = usage;
+				cmd.genIndexBuffer.indexCount = indexCount;
+				cmd.genIndexBuffer.indexElementSize = indexElementSize;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.genIndexBuffer.retval;
+			}
 #endif
 
 			uint handle;
@@ -2435,10 +2465,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				IntPtr.Zero,
 				result.Dynamic
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 
 			return result;
 		}
@@ -2479,7 +2505,20 @@ namespace Microsoft.Xna.Framework.Graphics
 			SetDataOptions options
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.setVertexBufferData.type = GLCommand.SETVERTEXBUFFERDATA;
+				cmd.setVertexBufferData.buffer = buffer;
+				cmd.setVertexBufferData.offsetInBytes = offsetInBytes;
+				cmd.setVertexBufferData.data = data;
+				cmd.setVertexBufferData.dataLength = dataLength;
+				cmd.setVertexBufferData.options = options;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
 
 			BindVertexBuffer(buffer);
@@ -2500,10 +2539,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				(IntPtr) dataLength,
 				data
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		public void SetIndexBufferData(
@@ -2514,7 +2549,20 @@ namespace Microsoft.Xna.Framework.Graphics
 			SetDataOptions options
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.setIndexBufferData.type = GLCommand.SETINDEXBUFFERDATA;
+				cmd.setIndexBufferData.buffer = buffer;
+				cmd.setIndexBufferData.offsetInBytes = offsetInBytes;
+				cmd.setIndexBufferData.data = data;
+				cmd.setIndexBufferData.dataLength = dataLength;
+				cmd.setIndexBufferData.options = options;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
 
 			BindIndexBuffer(buffer);
@@ -2535,10 +2583,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				(IntPtr) dataLength,
 				data
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		#endregion
@@ -2554,6 +2598,25 @@ namespace Microsoft.Xna.Framework.Graphics
 			int elementSizeInBytes,
 			int vertexStride
 		) {
+#if !DISABLE_THREADING
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.getVertexBufferData.type = GLCommand.GETVERTEXBUFFERDATA;
+				cmd.getVertexBufferData.buffer = buffer;
+				cmd.getVertexBufferData.offsetInBytes = offsetInBytes;
+				cmd.getVertexBufferData.data = data;
+				cmd.getVertexBufferData.startIndex = startIndex;
+				cmd.getVertexBufferData.elementCount = elementCount;
+				cmd.getVertexBufferData.elementSizeInBytes = elementSizeInBytes;
+				cmd.getVertexBufferData.vertexStride = vertexStride;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
+#endif
+
 			IntPtr cpy;
 			bool useStagingBuffer = elementSizeInBytes < vertexStride;
 			if (useStagingBuffer)
@@ -2565,10 +2628,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				cpy = data + (startIndex * elementSizeInBytes);
 			}
 
-#if !DISABLE_THREADING
-			ForceToMainThread(() => {
-#endif
-
 			BindVertexBuffer(buffer);
 
 			glGetBufferSubData(
@@ -2577,10 +2636,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				(IntPtr) (elementCount * vertexStride),
 				cpy
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 
 			if (useStagingBuffer)
 			{
@@ -2605,9 +2660,22 @@ namespace Microsoft.Xna.Framework.Graphics
 			int elementSizeInBytes
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.getIndexBufferData.type = GLCommand.GETINDEXBUFFERDATA;
+				cmd.getIndexBufferData.buffer = buffer;
+				cmd.getIndexBufferData.offsetInBytes = offsetInBytes;
+				cmd.getIndexBufferData.data = data;
+				cmd.getIndexBufferData.startIndex = startIndex;
+				cmd.getIndexBufferData.elementCount = elementCount;
+				cmd.getIndexBufferData.elementSizeInBytes = elementSizeInBytes;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
-
 			BindIndexBuffer(buffer);
 
 			glGetBufferSubData(
@@ -2616,10 +2684,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				(IntPtr) (elementCount * elementSizeInBytes),
 				data + (startIndex * elementSizeInBytes)
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		#endregion
@@ -2730,7 +2794,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			OpenGLTexture result = null;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.createTexture2D.type = GLCommand.CREATETEXTURE2D;
+				cmd.createTexture2D.width = width;
+				cmd.createTexture2D.height = height;
+				cmd.createTexture2D.levelCount = levelCount;
+				cmd.createTexture2D.isRenderTarget = isRenderTarget;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.createTexture2D.retval;
+			}
 #endif
 
 			result = CreateTexture(
@@ -2777,10 +2853,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 			}
 
-#if !DISABLE_THREADING
-			});
-#endif
-
 			return result;
 		}
 
@@ -2794,7 +2866,20 @@ namespace Microsoft.Xna.Framework.Graphics
 			OpenGLTexture result = null;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.createTexture3D.type = GLCommand.CREATETEXTURE3D;
+				cmd.createTexture3D.format = format;
+				cmd.createTexture3D.width = width;
+				cmd.createTexture3D.height = height;
+				cmd.createTexture3D.depth = depth;
+				cmd.createTexture3D.levelCount = levelCount;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.createTexture3D.retval;
+			}
 #endif
 
 			result = CreateTexture(
@@ -2821,10 +2906,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				);
 			}
 
-#if !DISABLE_THREADING
-			});
-#endif
-
 			return result;
 		}
 
@@ -2837,7 +2918,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			OpenGLTexture result = null;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.createTextureCube.type = GLCommand.CREATETEXTURECUBE;
+				cmd.createTextureCube.format = format;
+				cmd.createTextureCube.size = size;
+				cmd.createTextureCube.levelCount = levelCount;
+				cmd.createTextureCube.isRenderTarget = isRenderTarget;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.createTextureCube.retval;
+			}
 #endif
 
 			result = CreateTexture(
@@ -2890,10 +2983,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 			}
 
-#if !DISABLE_THREADING
-			});
-#endif
-
 			return result;
 		}
 
@@ -2913,8 +3002,26 @@ namespace Microsoft.Xna.Framework.Graphics
 			int dataLength
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.setTextureData2D.type = GLCommand.SETTEXTUREDATA2D;
+				cmd.setTextureData2D.texture = texture;
+				cmd.setTextureData2D.format = format;
+				cmd.setTextureData2D.x = x;
+				cmd.setTextureData2D.y = y;
+				cmd.setTextureData2D.w = w;
+				cmd.setTextureData2D.h = h;
+				cmd.setTextureData2D.level = level;
+				cmd.setTextureData2D.data = data;
+				cmd.setTextureData2D.dataLength = dataLength;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
+
 			BindTexture(texture);
 
 			GLenum glFormat = XNAToGL.TextureFormat[(int) format];
@@ -2971,10 +3078,6 @@ namespace Microsoft.Xna.Framework.Graphics
 					);
 				}
 			}
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		public void SetTextureData3D(
@@ -2991,8 +3094,28 @@ namespace Microsoft.Xna.Framework.Graphics
 			int dataLength
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.setTextureData3D.type = GLCommand.SETTEXTUREDATA3D;
+				cmd.setTextureData3D.texture = texture;
+				cmd.setTextureData3D.format = format;
+				cmd.setTextureData3D.level = level;
+				cmd.setTextureData3D.left = left;
+				cmd.setTextureData3D.top = top;
+				cmd.setTextureData3D.right = right;
+				cmd.setTextureData3D.bottom = bottom;
+				cmd.setTextureData3D.front = front;
+				cmd.setTextureData3D.back = back;
+				cmd.setTextureData3D.data = data;
+				cmd.setTextureData3D.dataLength = dataLength;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
+
 			BindTexture(texture);
 
 			glTexSubImage3D(
@@ -3008,10 +3131,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				XNAToGL.TextureDataType[(int) format],
 				data
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		public void SetTextureDataCube(
@@ -3027,8 +3146,27 @@ namespace Microsoft.Xna.Framework.Graphics
 			int dataLength
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.setTextureDataCube.type = GLCommand.SETTEXTUREDATACUBE;
+				cmd.setTextureDataCube.texture = texture;
+				cmd.setTextureDataCube.format = format;
+				cmd.setTextureDataCube.xOffset = xOffset;
+				cmd.setTextureDataCube.yOffset = yOffset;
+				cmd.setTextureDataCube.width = width;
+				cmd.setTextureDataCube.height = height;
+				cmd.setTextureDataCube.cubeMapFace = cubeMapFace;
+				cmd.setTextureDataCube.level = level;
+				cmd.setTextureDataCube.data = data;
+				cmd.setTextureDataCube.dataLength = dataLength;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
+
 			BindTexture(texture);
 
 			GLenum glFormat = XNAToGL.TextureFormat[(int) format];
@@ -3066,10 +3204,6 @@ namespace Microsoft.Xna.Framework.Graphics
 					data
 				);
 			}
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		public void SetTextureDataYUV(Texture2D[] textures, IntPtr ptr)
@@ -3115,7 +3249,28 @@ namespace Microsoft.Xna.Framework.Graphics
 			int elementSizeInBytes
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.getTextureData2D.type = GLCommand.GETTEXTUREDATA2D;
+				cmd.getTextureData2D.texture = texture;
+				cmd.getTextureData2D.format = format;
+				cmd.getTextureData2D.width = width;
+				cmd.getTextureData2D.height = height;
+				cmd.getTextureData2D.level = level;
+				cmd.getTextureData2D.subX = subX;
+				cmd.getTextureData2D.subY = subY;
+				cmd.getTextureData2D.subW = subW;
+				cmd.getTextureData2D.subH = subH;
+				cmd.getTextureData2D.data = data;
+				cmd.getTextureData2D.startIndex = startIndex;
+				cmd.getTextureData2D.elementCount = elementCount;
+				cmd.getTextureData2D.elementSizeInBytes = elementSizeInBytes;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
 
 			if (level == 0 && ReadTargetIfApplicable(
@@ -3188,10 +3343,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 				Marshal.FreeHGlobal(texData);
 			}
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		public void GetTextureData3D(
@@ -3228,7 +3379,28 @@ namespace Microsoft.Xna.Framework.Graphics
 			int elementSizeInBytes
 		) {
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.getTextureDataCube.type = GLCommand.GETTEXTUREDATACUBE;
+				cmd.getTextureDataCube.texture = texture;
+				cmd.getTextureDataCube.format = format;
+				cmd.getTextureDataCube.size = size;
+				cmd.getTextureDataCube.cubeMapFace = cubeMapFace;
+				cmd.getTextureDataCube.level = level;
+				cmd.getTextureDataCube.subX = subX;
+				cmd.getTextureDataCube.subY = subY;
+				cmd.getTextureDataCube.subW = subW;
+				cmd.getTextureDataCube.subH = subH;
+				cmd.getTextureDataCube.data = data;
+				cmd.getTextureDataCube.startIndex = startIndex;
+				cmd.getTextureDataCube.elementCount = elementCount;
+				cmd.getTextureDataCube.elementSizeInBytes = elementSizeInBytes;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return;
+			}
 #endif
 
 			BindTexture(texture);
@@ -3287,10 +3459,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				}
 				Marshal.FreeHGlobal(texData);
 			}
-
-#if !DISABLE_THREADING
-			});
-#endif
 		}
 
 		#endregion
@@ -3676,7 +3844,20 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint handle = 0;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.genColorRenderbuffer.type = GLCommand.GENCOLORRENDERBUFFER;
+				cmd.genColorRenderbuffer.width = width;
+				cmd.genColorRenderbuffer.height = height;
+				cmd.genColorRenderbuffer.format = format;
+				cmd.genColorRenderbuffer.multiSampleCount = multiSampleCount;
+				cmd.genColorRenderbuffer.texture = texture;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.genColorRenderbuffer.retval;
+			}
 #endif
 
 			glGenRenderbuffers(1, out handle);
@@ -3707,10 +3888,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				GLenum.GL_RENDERBUFFER,
 				realBackbufferRBO
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 
 			return new OpenGLRenderbuffer(handle);
 		}
@@ -3724,7 +3901,19 @@ namespace Microsoft.Xna.Framework.Graphics
 			uint handle = 0;
 
 #if !DISABLE_THREADING
-			ForceToMainThread(() => {
+			if (mainThreadId != Thread.CurrentThread.ManagedThreadId)
+			{
+				GLCommand cmd = new GLCommand();
+				cmd.genDepthRenderbuffer.type = GLCommand.GENDEPTHRENDERBUFFER;
+				cmd.genDepthRenderbuffer.width = width;
+				cmd.genDepthRenderbuffer.height = height;
+				cmd.genDepthRenderbuffer.format = format;
+				cmd.genDepthRenderbuffer.multiSampleCount = multiSampleCount;
+				ManualResetEventSlim sem = new ManualResetEventSlim(false);
+				ForceToMainThread(ref cmd, sem);
+				sem.Wait();
+				return cmd.genDepthRenderbuffer.retval;
+			}
 #endif
 
 			glGenRenderbuffers(1, out handle);
@@ -3755,10 +3944,6 @@ namespace Microsoft.Xna.Framework.Graphics
 				GLenum.GL_RENDERBUFFER,
 				realBackbufferRBO
 			);
-
-#if !DISABLE_THREADING
-			});
-#endif
 
 			return new OpenGLRenderbuffer(handle);
 		}
@@ -4899,29 +5084,31 @@ namespace Microsoft.Xna.Framework.Graphics
 		private Flush glFlush;
 
 #else
-		private System.Collections.Generic.List<Action> actions = new System.Collections.Generic.List<Action>();
+		private System.Collections.Generic.List<GLCommand> actions =
+			new System.Collections.Generic.List<GLCommand>();
+		private System.Collections.Generic.List<ManualResetEventSlim> semaphores =
+			new System.Collections.Generic.List<ManualResetEventSlim>();
 		private void RunActions()
 		{
 			lock (actions)
 			{
-				foreach (Action action in actions)
+				for (int i = 0; i < actions.Count; i += 1)
 				{
-					action();
+					// TODO: Need this to be a pointer...
+					GLCommand cmd = actions[i];
+					GLCommand.Execute(this, ref cmd);
+					semaphores[i].Set();
 				}
 				actions.Clear();
+				semaphores.Clear();
 			}
 		}
 #endif
 
-		private void ForceToMainThread(Action action)
-		{
-			// If we're already on the main thread, just call the action.
-			if (mainThreadId == Thread.CurrentThread.ManagedThreadId)
-			{
-				action();
-				return;
-			}
-
+		private void ForceToMainThread(
+			ref GLCommand action,
+			ManualResetEventSlim semaphore
+		) {
 #if THREADED_GL
 			lock (BackgroundContext)
 			{
@@ -4929,7 +5116,7 @@ namespace Microsoft.Xna.Framework.Graphics
 				SDL.SDL_GL_MakeCurrent(WindowInfo, BackgroundContext.context);
 
 				// Execute the action.
-				action();
+				GLCommand.Execute(this, action);
 
 				// Must flush the GL calls now before we release the context.
 				glFlush();
@@ -4938,16 +5125,12 @@ namespace Microsoft.Xna.Framework.Graphics
 				SDL.SDL_GL_MakeCurrent(WindowInfo, IntPtr.Zero);
 			}
 #else
-			ManualResetEventSlim resetEvent = new ManualResetEventSlim(false);
 			lock (actions)
 			{
-				actions.Add(() =>
-				{
-					action();
-					resetEvent.Set();
-				});
+				// TODO: Need this to be a pointer...
+				actions.Add(action);
+				semaphores.Add(semaphore);
 			}
-			resetEvent.Wait();
 #endif
 		}
 

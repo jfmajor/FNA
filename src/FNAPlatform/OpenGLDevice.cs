@@ -5116,13 +5116,16 @@ namespace Microsoft.Xna.Framework.Graphics
 				SDL.SDL_GL_MakeCurrent(WindowInfo, BackgroundContext.context);
 
 				// Execute the action.
-				GLCommand.Execute(this, action);
+				GLCommand.Execute(this, ref action);
 
 				// Must flush the GL calls now before we release the context.
 				glFlush();
 
 				// Free the threaded context for the next threaded call...
 				SDL.SDL_GL_MakeCurrent(WindowInfo, IntPtr.Zero);
+
+				// Wasteful, but so is threaded GL
+				semaphore.Set();
 			}
 #else
 			lock (actions)

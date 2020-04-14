@@ -381,8 +381,9 @@ namespace Microsoft.Xna.Framework
 
 			BeginRun();
 
-			// FIXME: Not quite right..
-			Tick();
+            // FIXME: Not quite right..
+            FNAPlatform.PollEvents(this);
+            Tick();
 
 			EndRun();
 		}

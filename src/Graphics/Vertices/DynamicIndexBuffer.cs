@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -81,7 +81,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			ErrorCheck(data, startIndex, elementCount);
 
 			GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-			GraphicsDevice.GLDevice.SetIndexBufferData(
+			FNA3D.FNA3D_SetIndexBufferData(
+				GraphicsDevice.GLDevice,
 				buffer,
 				offsetInBytes,
 				handle.AddrOfPinnedObject() + (startIndex * Marshal.SizeOf(typeof(T))),
@@ -100,7 +101,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			ErrorCheck(data, startIndex, elementCount);
 
 			GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-			GraphicsDevice.GLDevice.SetIndexBufferData(
+			FNA3D.FNA3D_SetIndexBufferData(
+				GraphicsDevice.GLDevice,
 				buffer,
 				0,
 				handle.AddrOfPinnedObject() + (startIndex * Marshal.SizeOf(typeof(T))),

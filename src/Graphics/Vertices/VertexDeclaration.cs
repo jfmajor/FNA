@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -9,6 +9,7 @@
 
 #region Using Statements
 using System;
+using System.Runtime.InteropServices;
 #endregion
 
 namespace Microsoft.Xna.Framework.Graphics
@@ -28,6 +29,13 @@ namespace Microsoft.Xna.Framework.Graphics
 		#region Internal Variables
 
 		internal VertexElement[] elements;
+		internal IntPtr elementsPin;
+
+		#endregion
+
+		#region Private Variables
+
+		private GCHandle handle;
 
 		#endregion
 
@@ -48,7 +56,18 @@ namespace Microsoft.Xna.Framework.Graphics
 			}
 
 			this.elements = (VertexElement[]) elements.Clone();
+			handle = GCHandle.Alloc(this.elements, GCHandleType.Pinned);
+			elementsPin = handle.AddrOfPinnedObject();
 			VertexStride = vertexStride;
+		}
+
+		#endregion
+
+		#region Destructor
+
+		~VertexDeclaration()
+		{
+			handle.Free();
 		}
 
 		#endregion

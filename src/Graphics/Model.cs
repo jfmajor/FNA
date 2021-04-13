@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -200,34 +200,6 @@ namespace Microsoft.Xna.Framework.Graphics
 			for (int i = 0; i < destinationBoneTransforms.Length; i += 1)
 			{
 				destinationBoneTransforms[i] = Bones[i].Transform;
-			}
-		}
-
-		#endregion
-
-		#region Internal Methods
-
-		internal void BuildHierarchy()
-		{
-			Matrix globalScale = Matrix.CreateScale(0.01f);
-
-			foreach (ModelBone node in Root.Children)
-			{
-				BuildHierarchy(node, Root.Transform * globalScale, 0);
-			}
-		}
-
-		#endregion
-
-		#region Private Methods
-
-		private void BuildHierarchy(ModelBone node, Matrix parentTransform, int level)
-		{
-			node.ModelTransform = node.Transform * parentTransform;
-			
-			foreach (ModelBone child in node.Children)
-			{
-				BuildHierarchy(child, node.ModelTransform, level + 1);
 			}
 		}
 

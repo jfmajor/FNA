@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -27,17 +27,37 @@ namespace Microsoft.Xna.Framework.Graphics
 			{
 #if DEBUG
 				// XNA checks for disposed textures here! -flibit
-				if (value != null && value.IsDisposed)
+				if (value != null)
 				{
-					throw new ObjectDisposedException(
-						value.GetType().ToString()
-					);
+					if (value.IsDisposed)
+					{
+						throw new ObjectDisposedException(
+							value.GetType().ToString()
+						);
+					}
+					if (!ignoreTargets)
+					for (int i = 0; i < value.GraphicsDevice.renderTargetCount; i += 1)
+					{
+						if (value == value.GraphicsDevice.renderTargetBindings[i].RenderTarget)
+						{
+							throw new InvalidOperationException(
+								"The render target must not be set on the" +
+								" device when it is used as a texture."
+							);
+						}
+					}
 				}
 #endif
 				textures[index] = value;
 				modifiedSamplers[index] = true;
 			}
 		}
+
+		#endregion
+
+		#region Internal Variables
+
+		internal bool ignoreTargets;
 
 		#endregion
 
@@ -59,6 +79,22 @@ namespace Microsoft.Xna.Framework.Graphics
 			for (int i = 0; i < textures.Length; i += 1)
 			{
 				textures[i] = null;
+			}
+			ignoreTargets = false;
+		}
+
+		#endregion
+
+		#region Internal Functions
+
+		internal void RemoveDisposedTexture(Texture tex)
+		{
+			for (int i = 0; i < textures.Length; i += 1)
+			{
+				if (tex == textures[i])
+				{
+					this[i] = null;
+				}
 			}
 		}
 

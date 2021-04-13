@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -117,8 +117,8 @@ namespace Microsoft.Xna.Framework.Graphics
 			Reach.IndexElementSize32 =	false;
 			Reach.MaxVertexStreams =	16;
 			Reach.MaxStreamStride =		255;
-			HiDef.MaxVertexBufferSize =	0x3FFFFFF;
-			HiDef.MaxIndexBufferSize =	0x3FFFFFF;
+			Reach.MaxVertexBufferSize =	0x3FFFFFF;
+			Reach.MaxIndexBufferSize =	0x3FFFFFF;
 			Reach.MaxTextureSize =		2048;
 			Reach.MaxCubeSize =		512;
 			Reach.MaxVolumeExtent =		0;

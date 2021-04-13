@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -27,7 +27,7 @@ namespace Microsoft.Xna.Framework.Audio
 			{
 				return TimeSpan.FromSeconds(
 					(double) handle.PlayLength /
-					(double) format.nSamplesPerSec
+					(double) sampleRate
 				);
 			}
 		}
@@ -125,7 +125,9 @@ namespace Microsoft.Xna.Framework.Audio
 
 		internal List<WeakReference> Instances = new List<WeakReference>();
 		internal FAudio.FAudioBuffer handle;
-		internal FAudio.FAudioWaveFormatEx format;
+		internal IntPtr formatPtr;
+		internal ushort channels;
+		internal uint sampleRate;
 		internal uint loopStart;
 		internal uint loopLength;
 
@@ -142,6 +144,7 @@ namespace Microsoft.Xna.Framework.Audio
 			buffer,
 			0,
 			buffer.Length,
+			null,
 			1,
 			(ushort) channels,
 			(uint) sampleRate,
@@ -166,6 +169,7 @@ namespace Microsoft.Xna.Framework.Audio
 			buffer,
 			offset,
 			count,
+			null,
 			1,
 			(ushort) channels,
 			(uint) sampleRate,
@@ -181,11 +185,12 @@ namespace Microsoft.Xna.Framework.Audio
 
 		#region Internal Constructor
 
-		internal SoundEffect(
+		internal unsafe SoundEffect(
 			string name,
 			byte[] buffer,
 			int offset,
 			int count,
+			byte[] extraData,
 			ushort wFormatTag,
 			ushort nChannels,
 			uint nSamplesPerSec,
@@ -197,18 +202,40 @@ namespace Microsoft.Xna.Framework.Audio
 		) {
 			Device();
 			Name = name;
+			channels = nChannels;
+			sampleRate = nSamplesPerSec;
 			this.loopStart = (uint) loopStart;
 			this.loopLength = (uint) loopLength;
 
 			/* Buffer format */
-			format = new FAudio.FAudioWaveFormatEx();
-			format.wFormatTag = wFormatTag;
-			format.nChannels = nChannels;
-			format.nSamplesPerSec = nSamplesPerSec;
-			format.nAvgBytesPerSec = nAvgBytesPerSec;
-			format.nBlockAlign = nBlockAlign;
-			format.wBitsPerSample = wBitsPerSample;
-			format.cbSize = 0; /* May be needed for ADPCM? */
+			if (extraData == null)
+			{
+				formatPtr = Marshal.AllocHGlobal(
+					Marshal.SizeOf(typeof(FAudio.FAudioWaveFormatEx))
+				);
+			}
+			else
+			{
+				formatPtr = Marshal.AllocHGlobal(
+					Marshal.SizeOf(typeof(FAudio.FAudioWaveFormatEx)) +
+					extraData.Length
+				);
+				Marshal.Copy(
+					extraData,
+					0,
+					formatPtr + Marshal.SizeOf(typeof(FAudio.FAudioWaveFormatEx)),
+					extraData.Length
+				);
+			}
+
+			FAudio.FAudioWaveFormatEx* pcm = (FAudio.FAudioWaveFormatEx*) formatPtr;
+			pcm->wFormatTag = wFormatTag;
+			pcm->nChannels = nChannels;
+			pcm->nSamplesPerSec = nSamplesPerSec;
+			pcm->nAvgBytesPerSec = nAvgBytesPerSec;
+			pcm->nBlockAlign = nBlockAlign;
+			pcm->wBitsPerSample = wBitsPerSample;
+			pcm->cbSize = (ushort) ((extraData == null) ? 0 : extraData.Length);
 
 			/* Easy stuff */
 			handle = new FAudio.FAudioBuffer();
@@ -242,6 +269,12 @@ namespace Microsoft.Xna.Framework.Audio
 					nBlockAlign *
 					(((nBlockAlign / nChannels) - 6) * 2)
 				);
+			}
+			else if (wFormatTag == 0x166)
+			{
+				FAudio.FAudioXMA2WaveFormatEx* xma2 = (FAudio.FAudioXMA2WaveFormatEx*) formatPtr;
+				// dwSamplesEncoded / nChannels / (wBitsPerSample / 8) doesn't always (if ever?) match up.
+				handle.PlayLength = xma2->dwPlayLength;
 			}
 
 			/* Set by Instances! */
@@ -287,6 +320,7 @@ namespace Microsoft.Xna.Framework.Audio
 					}
 				}
 				Instances.Clear();
+				Marshal.FreeHGlobal(formatPtr);
 				Marshal.FreeHGlobal(handle.pAudioData);
 				IsDisposed = true;
 			}
@@ -362,6 +396,9 @@ namespace Microsoft.Xna.Framework.Audio
 			ushort wBitsPerSample;
 			// ushort cbSize;
 
+			int samplerLoopStart = 0;
+			int samplerLoopEnd = 0;
+
 			using (BinaryReader reader = new BinaryReader(stream))
 			{
 				// RIFF Signature
@@ -416,6 +453,61 @@ namespace Microsoft.Xna.Framework.Audio
 
 				int waveDataLength = reader.ReadInt32();
 				data = reader.ReadBytes(waveDataLength);
+
+				// Scan for other chunks
+				while (reader.PeekChar() != -1)
+				{
+					byte[] chunkIDBytes = reader.ReadBytes(4);
+					if (chunkIDBytes.Length < 4)
+					{
+						break; // EOL!
+					}
+					byte[] chunkSizeBytes = reader.ReadBytes(4);
+					if (chunkSizeBytes.Length < 4)
+					{
+						break; // EOL!
+					}
+					int chunkID = BitConverter.ToInt32(chunkIDBytes, 0);
+					int chunkDataSize = BitConverter.ToInt32(chunkSizeBytes, 0);
+					if (chunkID == 0x736D706C) // "smpl", Sampler Chunk Found
+					{
+						reader.ReadUInt32(); // Manufacturer
+						reader.ReadUInt32(); // Product
+						reader.ReadUInt32(); // Sample Period
+						reader.ReadUInt32(); // MIDI Unity Note
+						reader.ReadUInt32(); // MIDI Pitch Fraction
+						reader.ReadUInt32(); // SMPTE Format
+						reader.ReadUInt32(); // SMPTE Offset
+						uint numSampleLoops = reader.ReadUInt32();
+						int samplerData = reader.ReadInt32();
+
+						for (int i = 0; i < numSampleLoops; i += 1)
+						{
+							reader.ReadUInt32(); // Cue Point ID
+							reader.ReadUInt32(); // Type
+							int start = reader.ReadInt32();
+							int end = reader.ReadInt32();
+							reader.ReadUInt32(); // Fraction
+							reader.ReadUInt32(); // Play Count
+
+							if (i == 0) // Grab loopStart and loopEnd from first sample loop
+							{
+								samplerLoopStart = start;
+								samplerLoopEnd = end;
+							}
+						}
+
+						if (samplerData != 0) // Read Sampler Data if it exists
+						{
+							reader.ReadBytes(samplerData);
+						}
+					}
+					else // Read unwanted chunk data and try again
+					{
+						reader.ReadBytes(chunkDataSize);
+					}
+				}
+				// End scan
 			}
 
 			return new SoundEffect(
@@ -423,14 +515,15 @@ namespace Microsoft.Xna.Framework.Audio
 				data,
 				0,
 				data.Length,
+				null,
 				wFormatTag,
 				nChannels,
 				nSamplesPerSec,
 				nAvgBytesPerSec,
 				nBlockAlign,
 				wBitsPerSample,
-				0,
-				0
+				samplerLoopStart,
+				samplerLoopEnd - samplerLoopStart
 			);
 		}
 
@@ -490,6 +583,7 @@ namespace Microsoft.Xna.Framework.Audio
 					IntPtr.Zero
 				) != 0) {
 					FAudio.FAudio_Release(ctx);
+					Handle = IntPtr.Zero;
 					FNALoggerEXT.LogError(
 						"Failed to create mastering voice!"
 					);
@@ -517,8 +611,14 @@ namespace Microsoft.Xna.Framework.Audio
 					ReverbVoice = IntPtr.Zero;
 					Marshal.FreeHGlobal(reverbSends.pSends);
 				}
-				FAudio.FAudioVoice_DestroyVoice(MasterVoice);
-				FAudio.FAudio_Release(Handle);
+				if (MasterVoice != IntPtr.Zero) 
+				{
+					FAudio.FAudioVoice_DestroyVoice(MasterVoice);
+				}
+				if (Handle != IntPtr.Zero) 
+				{
+					FAudio.FAudio_Release(Handle);
+				}
 				Context = null;
 			}
 
@@ -647,7 +747,16 @@ namespace Microsoft.Xna.Framework.Audio
 					return;
 				}
 
-				Context = new FAudioContext(ctx, devices);
+				FAudioContext context = new FAudioContext(ctx, devices);
+
+				if (context.Handle == IntPtr.Zero)
+				{
+					/* Soundcard failed to configure, bail! */
+					context.Dispose();
+					return;
+				}
+
+				Context = context;
 			}
 		}
 

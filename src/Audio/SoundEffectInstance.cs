@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -181,7 +181,7 @@ namespace Microsoft.Xna.Framework.Audio
 
 			if (!isDynamic)
 			{
-				InitDSPSettings(parentEffect.format.nChannels);
+				InitDSPSettings(parentEffect.channels);
 			}
 			if (parentEffect != null)
 			{
@@ -290,19 +290,32 @@ namespace Microsoft.Xna.Framework.Audio
 			SoundEffect.FAudioContext dev = SoundEffect.Device();
 
 			/* Create handle */
-			FAudio.FAudioWaveFormatEx fmt = isDynamic ?
-				(this as DynamicSoundEffectInstance).format :
-				parentEffect.format;
-			FAudio.FAudio_CreateSourceVoice(
-				dev.Handle,
-				out handle,
-				ref fmt,
-				FAudio.FAUDIO_VOICE_USEFILTER,
-				FAudio.FAUDIO_DEFAULT_FREQ_RATIO,
-				IntPtr.Zero,
-				IntPtr.Zero,
-				IntPtr.Zero
-			);
+			if (isDynamic)
+			{
+				FAudio.FAudio_CreateSourceVoice(
+					dev.Handle,
+					out handle,
+					ref (this as DynamicSoundEffectInstance).format,
+					FAudio.FAUDIO_VOICE_USEFILTER,
+					FAudio.FAUDIO_DEFAULT_FREQ_RATIO,
+					IntPtr.Zero,
+					IntPtr.Zero,
+					IntPtr.Zero
+				);
+			}
+			else
+			{
+				FAudio.FAudio_CreateSourceVoice(
+					dev.Handle,
+					out handle,
+					parentEffect.formatPtr,
+					FAudio.FAUDIO_VOICE_USEFILTER,
+					FAudio.FAUDIO_DEFAULT_FREQ_RATIO,
+					IntPtr.Zero,
+					IntPtr.Zero,
+					IntPtr.Zero
+				);
+			}
 			if (handle == IntPtr.Zero)
 			{
 				return; /* What */
@@ -402,9 +415,12 @@ namespace Microsoft.Xna.Framework.Audio
 
 				if (isDynamic)
 				{
-					FrameworkDispatcher.Streams.Remove(
-						this as DynamicSoundEffectInstance
-					);
+					lock (FrameworkDispatcher.Streams)
+					{
+						FrameworkDispatcher.Streams.Remove(
+							this as DynamicSoundEffectInstance
+						);
+					}
 					(this as DynamicSoundEffectInstance).ClearBuffers();
 				}
 			}

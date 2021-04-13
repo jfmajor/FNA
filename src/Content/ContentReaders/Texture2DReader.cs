@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -101,13 +101,13 @@ namespace Microsoft.Xna.Framework.Content
 			// Check to see if we need to convert the surface data
 			SurfaceFormat convertedFormat = surfaceFormat;
 			if (	surfaceFormat == SurfaceFormat.Dxt1 &&
-				!device.GLDevice.SupportsDxt1	)
+				FNA3D.FNA3D_SupportsDXT1(device.GLDevice) == 0	)
 			{
 				convertedFormat = SurfaceFormat.Color;
 			}
 			else if (	(	surfaceFormat == SurfaceFormat.Dxt3 ||
 						surfaceFormat == SurfaceFormat.Dxt5	) &&
-					!device.GLDevice.SupportsS3tc	)
+					FNA3D.FNA3D_SupportsS3TC(device.GLDevice) == 0	)
 			{
 				convertedFormat = SurfaceFormat.Color;
 			}

@@ -1,6 +1,6 @@
 #region License
 /* FNA - XNA4 Reimplementation for Desktop Platforms
- * Copyright 2009-2020 Ethan Lee and the MonoGame Team
+ * Copyright 2009-2021 Ethan Lee and the MonoGame Team
  *
  * Released under the Microsoft Public License.
  * See LICENSE for details.
@@ -15,27 +15,60 @@ namespace Microsoft.Xna.Framework.Graphics
 
 		public int Offset
 		{
-			get;
-			set;
+			get
+			{
+				return offset;
+			}
+			set
+			{
+				offset = value;
+			}
 		}
 
 		public VertexElementFormat VertexElementFormat
 		{
-			get;
-			set;
+			get
+			{
+				return vertexElementFormat;
+			}
+			set
+			{
+				vertexElementFormat = value;
+			}
 		}
 
 		public VertexElementUsage VertexElementUsage
 		{
-			get;
-			set;
+			get
+			{
+				return vertexElementUsage;
+			}
+			set
+			{
+				vertexElementUsage = value;
+			}
 		}
 
 		public int UsageIndex
 		{
-			get;
-			set;
+			get
+			{
+				return usageIndex;
+			}
+			set
+			{
+				usageIndex = value;
+			}
 		}
+
+		#endregion
+
+		#region Private Variables
+
+		private int offset;
+		private VertexElementFormat vertexElementFormat;
+		private VertexElementUsage vertexElementUsage;
+		private int usageIndex;
 
 		#endregion
 
